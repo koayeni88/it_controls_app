@@ -1,0 +1,2 @@
+from controls.system.patch_management import PatchManagementTest
+from controls.system.service_monitor import ServiceMonitorTest

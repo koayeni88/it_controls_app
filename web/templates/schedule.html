@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Schedule - IT Controls{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Test Scheduling</h1>
+</div>
+
+<section class="section">
+    <h2>Add Scheduled Job</h2>
+    <form method="POST" class="schedule-form">
+        <input type="hidden" name="action" value="add">
+
+        <div class="form-group">
+            <label>Schedule Type</label>
+            <select name="type" id="sched-type" onchange="toggleSchedOptions()">
+                <option value="interval">Interval (every N hours)</option>
+                <option value="cron">Cron Expression</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="interval-group">
+            <label>Hours Between Runs</label>
+            <input type="number" name="hours" value="24" min="1" max="8760">
+        </div>
+
+        <div class="form-group" id="cron-group" style="display:none;">
+            <label>Cron Expression (min hour day month dow)</label>
+            <input type="text" name="cron" value="0 2 * * *" placeholder="0 2 * * *">
+        </div>
+
+        <div class="form-group">
+            <label>Scan Mode</label>
+            <select name="mode" id="sched-mode" onchange="toggleSchedMode()">
+                <option value="all">Full Scan</option>
+                <option value="category">Category Only</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="sched-cat-group" style="display:none;">
+            <label>Category</label>
+            <select name="category">
+                {% for cat in categories %}
+                <option value="{{ cat }}">{{ cat | replace('_', ' ') | title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Add Schedule</button>
+    </form>
+</section>
+
+<section class="section">
+    <h2>Scheduler Control</h2>
+    <form method="POST" style="display:inline;">
+        <input type="hidden" name="action" value="start">
+        <button type="submit" class="btn btn-primary" {% if scheduler_running %}disabled{% endif %}>
+            {{ 'Running' if scheduler_running else 'Start Scheduler' }}
+        </button>
+    </form>
+    <span class="scheduler-status {{ 'running' if scheduler_running else 'stopped' }}">
+        {{ 'Active' if scheduler_running else 'Stopped' }}
+    </span>
+</section>
+
+<section class="section">
+    <h2>Saved Jobs</h2>
+    {% if saved_jobs %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Job ID</th>
+                <th>Type</th>
+                <th>Schedule</th>
+                <th>Mode</th>
+                <th>Category</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in saved_jobs %}
+            <tr>
+                <td>{{ job.job_id }}</td>
+                <td>{{ job.job_type }}</td>
+                <td>{{ job.schedule }}</td>
+                <td>{{ job.mode }}</td>
+                <td>{{ job.category or '—' }}</td>
+                <td>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="job_id" value="{{ job.job_id }}">
+                        <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-text">No scheduled jobs configured yet.</p>
+    {% endif %}
+</section>
+
+<script>
+function toggleSchedOptions() {
+    var t = document.getElementById('sched-type').value;
+    document.getElementById('interval-group').style.display = t === 'interval' ? 'block' : 'none';
+    document.getElementById('cron-group').style.display = t === 'cron' ? 'block' : 'none';
+}
+function toggleSchedMode() {
+    var m = document.getElementById('sched-mode').value;
+    document.getElementById('sched-cat-group').style.display = m === 'category' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

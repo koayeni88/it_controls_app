@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - IT Controls{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>IT Controls Dashboard</h1>
+    <div class="header-actions">
+        <form method="POST" action="{{ url_for('run_tests') }}" class="inline-form">
+            <input type="hidden" name="mode" value="all">
+            <button type="submit" class="btn btn-primary">Run All Tests</button>
+        </form>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card stat-pass">
+        <div class="stat-value">{{ latest.passed if latest else 0 }}</div>
+        <div class="stat-label">Passed</div>
+    </div>
+    <div class="stat-card stat-fail">
+        <div class="stat-value">{{ latest.failed if latest else 0 }}</div>
+        <div class="stat-label">Failed</div>
+    </div>
+    <div class="stat-card stat-warn">
+        <div class="stat-value">{{ latest.warnings if latest else 0 }}</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-card stat-total">
+        <div class="stat-value">{{ latest.total_checks if latest else 0 }}</div>
+        <div class="stat-label">Total Checks</div>
+    </div>
+</div>
+
+<!-- Quick Run by Category -->
+<section class="section">
+    <h2>Run by Category</h2>
+    <div class="category-grid">
+        {% for cat in categories %}
+        {% if not cat.startswith('cloud_') %}
+        <form method="POST" action="{{ url_for('run_tests') }}" class="category-card">
+            <input type="hidden" name="mode" value="category">
+            <input type="hidden" name="category" value="{{ cat }}">
+            <h3>{{ cat | replace('_', ' ') | title }}</h3>
+            <button type="submit" class="btn btn-sm">Run</button>
+        </form>
+        {% endif %}
+        {% endfor %}
+    </div>
+</section>
+
+<!-- Cloud Providers -->
+<section class="section section-cloud">
+    <h2>Cloud Security</h2>
+    <div class="category-grid">
+        {% set cloud_cats = {'cloud_aws': ('AWS', 'aws'), 'cloud_azure': ('Azure', 'azure'), 'cloud_gcp': ('GCP', 'gcp')} %}
+        {% for cat_key, (label, cls) in cloud_cats.items() %}
+        {% if cat_key in categories %}
+        <form method="POST" action="{{ url_for('run_tests') }}" class="category-card cloud-{{ cls }}">
+            <input type="hidden" name="mode" value="category">
+            <input type="hidden" name="category" value="{{ cat_key }}">
+            <h3><span class="provider-chip {{ cls }}">{{ label }}</span> Security</h3>
+            <button type="submit" class="btn btn-sm">Run</button>
+        </form>
+        {% endif %}
+        {% endfor %}
+        <form method="POST" action="{{ url_for('run_tests') }}" class="category-card" style="border-left: 3px solid var(--accent);">
+            <input type="hidden" name="mode" value="cloud_all">
+            <h3>All Cloud Providers</h3>
+            <button type="submit" class="btn btn-sm btn-primary">Run All</button>
+        </form>
+    </div>
+</section>
+
+<!-- Compliance Overview -->
+{% if compliance %}
+<section class="section">
+    <h2>Compliance Overview</h2>
+    <div class="compliance-grid">
+        {% for fw_key, fw_data in compliance.items() %}
+        <div class="compliance-card">
+            <h3>{{ fw_data.name }}</h3>
+            <div class="compliance-meter">
+                <div class="meter-fill {% if fw_data.compliance_pct >= 80 %}meter-good{% elif fw_data.compliance_pct >= 50 %}meter-warn{% else %}meter-bad{% endif %}"
+                     style="width: {{ fw_data.compliance_pct }}%"></div>
+            </div>
+            <div class="compliance-stats">
+                <span class="pct">{{ fw_data.compliance_pct }}%</span>
+                <span>{{ fw_data.passed }}/{{ fw_data.total }} controls passed</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Recent Runs -->
+<section class="section">
+    <h2>Recent Test Runs</h2>
+    {% if runs %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Timestamp</th>
+                <th>Passed</th>
+                <th>Failed</th>
+                <th>Warnings</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr>
+                <td>{{ run.id }}</td>
+                <td>{{ run.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td class="text-pass">{{ run.passed }}</td>
+                <td class="text-fail">{{ run.failed }}</td>
+                <td class="text-warn">{{ run.warnings }}</td>
+                <td>
+                    <span class="badge badge-{{ run.overall_status | lower }}">{{ run.overall_status }}</span>
+                </td>
+                <td>
+                    <a href="{{ url_for('results', run_id=run.id) }}" class="btn btn-sm">View</a>
+                    <a href="{{ url_for('api_export', run_id=run.id) }}" class="btn btn-sm btn-outline">Export</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p>No test runs yet. Click "Run All Tests" to get started.</p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

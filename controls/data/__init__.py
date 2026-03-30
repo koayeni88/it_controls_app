@@ -1,0 +1,2 @@
+from controls.data.backup_check import BackupVerificationTest
+from controls.data.encryption_check import EncryptionTest

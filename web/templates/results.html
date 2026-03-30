@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Results #{{ run.id }} - IT Controls{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Test Run #{{ run.id }}</h1>
+    <span class="badge badge-{{ run.overall_status | lower }} badge-lg">{{ run.overall_status }}</span>
+</div>
+
+<p class="text-muted">Executed: {{ run.timestamp.strftime('%Y-%m-%d %H:%M:%S UTC') }}</p>
+
+<!-- Stats Cards -->
+<div class="stats-grid">
+    <div class="stat-card stat-pass">
+        <div class="stat-value">{{ run.passed }}</div>
+        <div class="stat-label">Passed</div>
+    </div>
+    <div class="stat-card stat-fail">
+        <div class="stat-value">{{ run.failed }}</div>
+        <div class="stat-label">Failed</div>
+    </div>
+    <div class="stat-card stat-warn">
+        <div class="stat-value">{{ run.warnings }}</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+</div>
+
+<!-- Compliance Summary -->
+{% if compliance %}
+<section class="section">
+    <h2>Compliance Summary</h2>
+    <div class="compliance-grid">
+        {% for fw_key, fw_data in compliance.items() %}
+        <div class="compliance-card">
+            <h3>{{ fw_data.name }}</h3>
+            <div class="compliance-meter">
+                <div class="meter-fill {% if fw_data.compliance_pct >= 80 %}meter-good{% elif fw_data.compliance_pct >= 50 %}meter-warn{% else %}meter-bad{% endif %}"
+                     style="width: {{ fw_data.compliance_pct }}%"></div>
+            </div>
+            <div class="compliance-stats">
+                <span class="pct">{{ fw_data.compliance_pct }}%</span>
+                <span>{{ fw_data.passed }}/{{ fw_data.total }} controls</span>
+            </div>
+            <details class="control-details">
+                <summary>View Controls</summary>
+                <table class="data-table compact">
+                    <thead><tr><th>Control</th><th>Section</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for ctrl_ref, ctrl in fw_data.controls.items() %}
+                        <tr>
+                            <td>{{ ctrl_ref }}</td>
+                            <td>{{ ctrl.section }}</td>
+                            <td><span class="badge badge-{{ ctrl.status }}">{{ ctrl.status | upper }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </details>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Detailed Findings -->
+<section class="section">
+    <h2>Detailed Findings</h2>
+    {% if summary and summary.results %}
+        {% for result in summary.results %}
+        <div class="result-card">
+            <div class="result-header">
+                <h3>{{ result.test_name }}</h3>
+                <span class="badge badge-{{ result.overall_status | lower }}">{{ result.overall_status }}</span>
+            </div>
+            <div class="result-meta">
+                <span>Category: {{ result.category }}</span>
+                <span>Duration: {{ result.duration_seconds }}s</span>
+                <span>P: {{ result.pass_count }} | F: {{ result.fail_count }} | W: {{ result.warning_count }}</span>
+            </div>
+            {% if result.findings %}
+            <table class="data-table compact">
+                <thead>
+                    <tr>
+                        <th>Ref</th>
+                        <th>Title</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Description</th>
+                        <th>Remediation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in result.findings %}
+                    <tr>
+                        <td>{{ f.control_ref }}</td>
+                        <td>{{ f.title }}</td>
+                        <td><span class="severity severity-{{ f.severity | lower }}">{{ f.severity }}</span></td>
+                        <td><span class="badge badge-{{ f.status | lower }}">{{ f.status }}</span></td>
+                        <td>{{ f.description }}</td>
+                        <td>{{ f.recommendation }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state"><p>No detailed findings available.</p></div>
+    {% endif %}
+</section>
+
+<a href="{{ url_for('dashboard') }}" class="btn btn-outline">&larr; Back to Dashboard</a>
+{% endblock %}

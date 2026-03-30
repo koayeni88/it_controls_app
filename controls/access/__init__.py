@@ -1,0 +1,3 @@
+from controls.access.password_policy import PasswordPolicyTest
+from controls.access.user_privileges import UserPrivilegeTest
+from controls.access.account_lockout import AccountLockoutTest
